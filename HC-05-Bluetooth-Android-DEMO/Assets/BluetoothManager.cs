@@ -124,8 +124,9 @@ public class BluetoothManager : MonoBehaviour
                     int size = packets.get_packet_size(i);
 
                     string content = System.Text.ASCIIEncoding.ASCII.GetString(packets.Buffer, indx, size);
-                    Analysis(content);
+                    
                     readDataText.add("Koc", content);
+                    Analysis(content);
                 }
             }
 
@@ -151,9 +152,9 @@ public class BluetoothManager : MonoBehaviour
 
     public void NewNAME()
     {
-        if (device != null)
+        if (device != null && !string.IsNullOrEmpty(inputName.text))
         {
-            device.send(System.Text.Encoding.ASCII.GetBytes("NAME/"+ inputName.text + (char)10));//10 is our seperator Byte (sepration between packets)
+            device.send(System.Text.Encoding.ASCII.GetBytes("NAME" + inputName.text + (char)10));//10 is our seperator Byte (sepration between packets)
         }
     }
 

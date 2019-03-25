@@ -6828,8 +6828,8 @@ MonoBehaviour:
   InfoCanvas: {fileID: 1139315493}
   DataCanvas: {fileID: 817472187}
   dataToSend: {fileID: 849161103}
-  showName: {fileID: 0}
-  inputName: {fileID: 0}
+  showName: {fileID: 1178725992}
+  inputName: {fileID: 1993747545}
 --- !u!1 &1820120968
 GameObject:
   m_ObjectHideFlags: 0

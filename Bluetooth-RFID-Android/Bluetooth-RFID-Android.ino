@@ -46,6 +46,10 @@ byte buffer[18];
 
 MFRC522::StatusCode status;
 
+/***********************************************************************
+ * Data
+***********************************************************************/
+String nameTag;
 void setup() 
 {
     Serial.begin(9600);         // Initialize Arduino SP
@@ -71,7 +75,7 @@ void loop()
         if(val != '\n')
             msg += val;
         else
-        {
+        {   
             hc05.println(msg); //必須使用println才能與Unity對接，因為設定換行結尾char(10)
             msg = "";
         }
@@ -85,21 +89,72 @@ void loop()
             msg += val;
         else
         {
-            command = msg;
             Serial.println(msg);
+            if(msg.indexOf("NAME") >= 0)
+            {
+                nameTag = msg.substring(4 ,20);
+                Serial.print("New Name: ");
+                Serial.println(nameTag);     
+            }     
             msg = "";
         }
     }
     
-    if(command == "Pass")
-    {
-        digitalWrite(12, LOW);
-        Serial.println("Yes!");
-        hc05.println("OK! Feedback");
-        command = "";
-    }
+
+    
+    
+//    if(command == "Pass")
+//    {
+//        digitalWrite(12, LOW);
+//        Serial.println("Yes!");
+//        hc05.println("OK! Feedback");
+//        command = "";
+//    }
     // RFID -> Unity
     // Unity -> RFID  
+    
+    
+    // 查看是否感應到卡片
+    if ( ! mfrc522.PICC_IsNewCardPresent()) {
+      return;  // 退回loop迴圈的開頭
+    }
+  
+    // 選取一張卡片
+    if ( ! mfrc522.PICC_ReadCardSerial()) {  // 若傳回1，代表已讀取到卡片的ID
+      return;
+    }
+
+    // 寫入卡片資料
+    if(nameTag != "")
+    {
+        memset(blockData, '\0', sizeof(blockData));  // 清空blockData
+        nameTag.getBytes(blockData, 16); // 將字串符轉為byte
+        nameTag = "";  // 清空nameTag
+        writeBlock(sector, block, blockData);  // 區段編號、區塊編號、包含寫入資料的陣列    
+        hc05.println("Write Complete");
+    }
+
+    // 讀取卡片資料
+    readBlock(sector, block, buffer);      // 區段編號、區塊編號、存放讀取資料的陣列
+    Serial.print(F("Read block: "));        // 顯示儲存讀取資料的陣列元素值
+    for (byte i = 0 ; i < 16 ; i++) 
+    {
+        Serial.write (buffer[i]);
+    }
+    Serial.println();
+  
+    String myName = "NAME/" + String((char *)buffer);
+    hc05.println(myName);
+    hc05.println("Read Complete");
+
+    // 驗證
+    if (memcmp(buffer, blockData, 16) == 0) {
+            Serial.println("Correct");  // 顯示標籤的名稱
+    }
+    // 令卡片進入停止狀態
+    mfrc522.PICC_HaltA();
+  
+    mfrc522.PCD_StopCrypto1();
 }
 
 
@@ -202,35 +257,5 @@ void SetupRFID() {
 }
 
 void LoopRFID() {
-  // 查看是否感應到卡片
-  if ( ! mfrc522.PICC_IsNewCardPresent()) {
-    return;  // 退回loop迴圈的開頭
-  }
 
-  // 選取一張卡片
-  if ( ! mfrc522.PICC_ReadCardSerial()) {  // 若傳回1，代表已讀取到卡片的ID
-    return;
-  }
-
-//  writeBlock(sector, block, blockData);  // 區段編號、區塊編號、包含寫入資料的陣列
-
-  readBlock(sector, block, buffer);      // 區段編號、區塊編號、存放讀取資料的陣列
-  Serial.print(F("Read block: "));        // 顯示儲存讀取資料的陣列元素值
-  for (byte i = 0 ; i < 16 ; i++) {
-
-  //Serial.write ("x");
-    Serial.write (buffer[i]);
-  }
-  Serial.println();
-
-  String myString = String((char *)buffer);
-  
-  hc05.println(myString);
-  if (memcmp(buffer, blockData, 16) == 0) {
-          Serial.println("Correct");  // 顯示標籤的名稱
-  }
-  // 令卡片進入停止狀態
-  mfrc522.PICC_HaltA();
-
-  mfrc522.PCD_StopCrypto1();
 }

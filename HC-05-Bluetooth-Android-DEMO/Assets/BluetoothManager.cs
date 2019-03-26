@@ -4,20 +4,22 @@ using System.Collections.Generic;
 
 using TechTweaking.Bluetooth;
 using UnityEngine.UI;
+using TMPro;
 
 public class BluetoothManager : MonoBehaviour
 {
 
-    public Text devicNameText;
+    public TextMeshProUGUI textDeviceName;
+    public TextMeshProUGUI textCardName;
+    public TMP_InputField inputNewName;
+    public TextMeshProUGUI textMessages;
+
     public ScrollTerminalUI readDataText;//ScrollTerminalUI is a script used to control the ScrollView text
 
     public GameObject InfoCanvas;
     public GameObject DataCanvas;
     private BluetoothDevice device;
     public Text dataToSend;
-
-    public Text showName;
-    public InputField inputName;
 
     void Awake()
     {
@@ -31,14 +33,52 @@ public class BluetoothManager : MonoBehaviour
     void HandleOnDeviceOff(BluetoothDevice dev)
     {
         if (!string.IsNullOrEmpty(dev.Name))
-            devicNameText.text = "Can't connect to " + dev.Name + ", device is OFF";
+            textDeviceName.text = "Can't connect to " + dev.Name + ", device is OFF";
         else if (!string.IsNullOrEmpty(dev.Name))
         {
-            devicNameText.text = "Can't connect to " + dev.MacAddress + ", device is OFF";
+            textDeviceName.text = "Can't connect to " + dev.MacAddress + ", device is OFF";
         }
     }
 
     //############### UI BUTTONS RELATED METHODS #####################
+    public void AutoConnect()
+    {
+
+        /* The Property device.MacAdress doesn't require pairing. 
+		 * Also Mac Adress in this library is Case sensitive,  all chars must be capital letters
+		 */
+#if UNITY_iOS
+        device.MacAddress = "XX:XX:XX:XX:XX:XX";
+#else
+        device.Name = "Wakaka Studio";
+#endif
+        /* device.Name = "My_Device";
+		* 
+		* Trying to identefy a device by its name using the Property device.Name require the remote device to be paired
+		* but you can try to alter the parameter 'allowDiscovery' of the Connect(int attempts, int time, bool allowDiscovery) method.
+		* allowDiscovery will try to locate the unpaired device, but this is a heavy and undesirable feature, and connection will take a longer time
+		*/
+
+
+        /*
+		 * 10 equals the char '\n' which is a "new Line" in Ascci representation, 
+		 * so the read() method will retun a packet that was ended by the byte 10. simply read() will read lines.
+		 * If you don't use the setEndByte() method, device.read() will return any available data (line or not), then you can order them as you want.
+		 */
+        device.setEndByte(10);
+
+
+        /*
+		 * The ManageConnection Coroutine will start when the device is ready for reading.
+		 */
+        device.ReadingCoroutine = ManageConnection;
+
+        textDeviceName.text = device.Name;
+
+        device.connect();
+    }
+
+
     public void showDevices()
     {
         BluetoothAdapter.showDevices();//show a list of all devices//any picked device will be sent to this.HandleOnDevicePicked()
@@ -84,8 +124,9 @@ public class BluetoothManager : MonoBehaviour
         //Other way would be listening to the event Bt.OnReadingStarted, and starting the courotine from there
         device.ReadingCoroutine = ManageConnection;
 
-        devicNameText.text = device.Name;
+        textDeviceName.text = device.Name;
 
+        device.connect();
     }
 
 
@@ -142,7 +183,13 @@ public class BluetoothManager : MonoBehaviour
     void Analysis(string content)
     {
         if (content.Contains("NAME"))
-            showName.text = content.Split('/')[1];
+        {
+            textCardName.text = content.Split('/')[1];
+            textMessages.text = "已读取最新资料";
+        }
+
+        if (content.Contains("KEY"))
+            textCardName.text = content.Split('/')[1];
     }
 
     public void AddTest()
@@ -152,9 +199,9 @@ public class BluetoothManager : MonoBehaviour
 
     public void NewNAME()
     {
-        if (device != null && !string.IsNullOrEmpty(inputName.text))
+        if (device != null && !string.IsNullOrEmpty(inputNewName.text))
         {
-            device.send(System.Text.Encoding.ASCII.GetBytes("NAME" + inputName.text + (char)10));//10 is our seperator Byte (sepration between packets)
+            device.send(System.Text.Encoding.ASCII.GetBytes("NAME" + inputNewName.text + (char)10));//10 is our seperator Byte (sepration between packets)
         }
     }
 
